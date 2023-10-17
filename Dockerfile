@@ -3,7 +3,7 @@
 # ------------------------------------------------------------------------------
 
 FROM rust:latest as cargo-build
-RUN apt-get install debian-archive-keyring 
+RUN apt-get install debian-keyring debian-archive-keyring
 RUN apt-get update
 RUN apt-get install musl-tools -y
 RUN rustup target add x86_64-unknown-linux-musl

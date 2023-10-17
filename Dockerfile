@@ -1,26 +1,23 @@
-####################################################################################################
-## Builder
-####################################################################################################
-FROM rust:latest AS builder
+# ------------------------------------------------------------------------------
+# Cargo Build Stage
+# ------------------------------------------------------------------------------
 
+FROM rust:latest as cargo-build
+RUN apt-get update
+RUN apt-get install musl-tools -y
 RUN rustup target add x86_64-unknown-linux-musl
-RUN apt update && apt install -y musl-tools musl-dev
-RUN update-ca-certificates
+WORKDIR /usr/src/openlab-fake-rank
+COPY Cargo.toml Cargo.toml
+COPY src/ src/
+RUN RUSTFLAGS=-Clinker=musl-gcc cargo build --release --target=x86_64-unknown-linux-musl
+RUN rm -f target/x86_64-unknown-linux-musl/release/deps/openlab-fake-rank*
+COPY . .
+RUN RUSTFLAGS=-Clinker=musl-gcc cargo build --release --target=x86_64-unknown-linux-musl
+# ------------------------------------------------------------------------------
+# Final Stage
+# ------------------------------------------------------------------------------
 
-WORKDIR /app
+FROM alpine:latest
 
-COPY ./ .
-
-RUN cargo build --target x86_64-unknown-linux-musl --release
-
-####################################################################################################
-## Final image
-####################################################################################################
-FROM scratch
-
-WORKDIR /app
-
-# Copy our build
-COPY --from=builder /app/target/x86_64-unknown-linux-musl/release/openlab-fake-rank ./
-
-CMD ["/app/openlab-fake-rank"]
+COPY --from=cargo-build /usr/src/openlab-fake-rank/target/x86_64-unknown-linux-musl/release/openlab-fake-rank /usr/local/bin/openlab-fake-rank
+CMD ["openlab-fake-rank"]
